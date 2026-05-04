@@ -38,6 +38,10 @@ import {
 } from "@/lib/phraseHighlight";
 import { cn } from "@/lib/utils";
 
+/** Suggestion popover under caret (Minecraft-style Tab cycle). */
+const TAB_MENU_MAX_H = 192;
+const TAB_MENU_MAX_W = 280;
+
 type Props = {
   value: string;
   onChange: (v: string) => void;
@@ -107,11 +111,15 @@ export const PrompterEditor = forwardRef<HTMLTextAreaElement, Props>(function Pr
     if (typeof ref === "function") ref(el);
     else if (ref) (ref as MutableRefObject<HTMLTextAreaElement | null>).current = el;
   };
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
   const mirrorRef = useRef<HTMLDivElement | null>(null);
+  const measureLayerRef = useRef<HTMLDivElement | null>(null);
+  const caretProbeRef = useRef<HTMLSpanElement | null>(null);
   const [caret, setCaret] = useState(0);
   const [scroll, setScroll] = useState({ top: 0, left: 0 });
-  /** Index in alphabetically sorted matches for the current token (Shift+↓/↑ cycles). */
+  /** Index in alphabetically sorted matches (Tab cycles like Minecraft). */
   const [pickIndex, setPickIndex] = useState(0);
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
   const suggestionItemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const [editOpen, setEditOpen] = useState(false);
@@ -169,11 +177,44 @@ export const PrompterEditor = forwardRef<HTMLTextAreaElement, Props>(function Pr
   );
 
   useLayoutEffect(() => {
-    if (mirrorRef.current && innerRef.current) {
-      mirrorRef.current.scrollTop = innerRef.current.scrollTop;
-      mirrorRef.current.scrollLeft = innerRef.current.scrollLeft;
+    const ta = innerRef.current;
+    const mirror = mirrorRef.current;
+    const measure = measureLayerRef.current;
+    if (ta && measure) {
+      const cs = window.getComputedStyle(ta);
+      measure.style.font = cs.font;
+      measure.style.letterSpacing = cs.letterSpacing;
+      measure.style.padding = cs.padding;
+    }
+    if (ta && mirror) {
+      mirror.scrollTop = ta.scrollTop;
+      mirror.scrollLeft = ta.scrollLeft;
+    }
+    if (ta && measure) {
+      measure.scrollTop = ta.scrollTop;
+      measure.scrollLeft = ta.scrollLeft;
     }
   }, [scroll, value, caret]);
+
+  useLayoutEffect(() => {
+    const wrap = wrapperRef.current;
+    const probe = caretProbeRef.current;
+    if (!wrap || !probe || matchingSuggestions.length === 0) return;
+    const wrapRect = wrap.getBoundingClientRect();
+    const probeRect = probe.getBoundingClientRect();
+    const pad = 8;
+    let left = probeRect.left - wrapRect.left;
+    left = Math.min(left, Math.max(pad, wrapRect.width - TAB_MENU_MAX_W - pad));
+    left = Math.max(pad, left);
+    const spaceBelow = wrapRect.bottom - probeRect.bottom;
+    const flipUp =
+      spaceBelow < TAB_MENU_MAX_H + 12 && probeRect.top - wrapRect.top > TAB_MENU_MAX_H + 12;
+    let top = flipUp
+      ? probeRect.top - wrapRect.top - TAB_MENU_MAX_H - 6
+      : probeRect.bottom - wrapRect.top + 4;
+    top = Math.max(pad, Math.min(top, wrapRect.height - TAB_MENU_MAX_H - pad));
+    setMenuPos({ top, left });
+  }, [caret, value, scroll, matchingSuggestions.length]);
 
   useEffect(() => {
     const el = innerRef.current;
@@ -209,11 +250,6 @@ export const PrompterEditor = forwardRef<HTMLTextAreaElement, Props>(function Pr
       }
     });
     return true;
-  };
-
-  const cycleSuggestion = (delta: number) => {
-    if (matchingSuggestions.length === 0) return;
-    setPickIndex((i) => (i + delta + matchingSuggestions.length) % matchingSuggestions.length);
   };
 
   const readContext = () => {
@@ -338,16 +374,35 @@ export const PrompterEditor = forwardRef<HTMLTextAreaElement, Props>(function Pr
     <>
       <ContextMenu>
         <ContextMenuTrigger asChild>
-          <div className={`relative h-full ${className ?? ""}`}>
+          <div ref={wrapperRef} className={`relative h-full ${className ?? ""}`}>
+            {/* Invisible layer: same wrap/scroll as textarea to measure caret on-screen */}
+            <div
+              ref={measureLayerRef}
+              aria-hidden
+              className="absolute inset-0 z-0 overflow-auto whitespace-pre-wrap break-words opacity-0 pointer-events-none"
+              style={{
+                fontSize: "15px",
+                lineHeight: "1.5",
+                scrollbarWidth: "none",
+              }}
+            >
+              {value.slice(0, caret)}
+              <span ref={caretProbeRef} className="inline-block w-px h-[1.2em] align-text-bottom" />
+            </div>
             {matchingSuggestions.length > 0 && (
               <div
                 role="listbox"
                 aria-label="Suggerimenti dal dizionario"
-                className="absolute top-2 right-2 z-20 max-h-[min(11rem,calc(100%-0.5rem))] w-[min(15rem,calc(100%-1rem))] overflow-y-auto overflow-x-hidden rounded-md border border-border/40 bg-background/78 shadow-md backdrop-blur-md"
+                className="absolute z-20 max-w-[min(17.5rem,calc(100%-1rem))] w-[min(17.5rem,calc(100%-1rem))] overflow-y-auto overflow-x-hidden rounded-md border border-border/40 bg-background/82 shadow-md backdrop-blur-md"
+                style={{
+                  top: menuPos.top,
+                  left: menuPos.left,
+                  maxHeight: TAB_MENU_MAX_H,
+                }}
                 onWheel={(e) => e.stopPropagation()}
               >
-                <div className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/90 border-b border-border/30">
-                  Suggerimenti · Shift+↑↓ / rotellina · Tab
+                <div className="sticky top-0 z-[1] px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/90 border-b border-border/30 bg-background/90 backdrop-blur-sm">
+                  Tab cicla · Invio conferma · Maiusc+Invio = a capo
                 </div>
                 <div className="py-1">
                   {matchingSuggestions.map((phrase, i) => {
@@ -407,35 +462,24 @@ export const PrompterEditor = forwardRef<HTMLTextAreaElement, Props>(function Pr
               ref={setRefs}
               value={value}
               onChange={(e) => onChange(e.target.value)}
-              onWheel={(e) => {
-                if (e.shiftKey && matchingSuggestions.length > 0) {
-                  e.preventDefault();
-                  cycleSuggestion(e.deltaY > 0 ? 1 : -1);
-                }
-              }}
               onKeyDown={(e) => {
-                if (e.shiftKey && e.key === "ArrowDown") {
-                  if (matchingSuggestions.length > 0) {
-                    e.preventDefault();
-                    cycleSuggestion(1);
-                  }
+                if (e.key === "Enter" && e.shiftKey) {
                   return;
                 }
-                if (e.shiftKey && e.key === "ArrowUp") {
-                  if (matchingSuggestions.length > 0) {
-                    e.preventDefault();
-                    cycleSuggestion(-1);
-                  }
+                if (e.key === "Enter" && suffix && matchingSuggestions.length > 0) {
+                  e.preventDefault();
+                  acceptSuffix();
                   return;
                 }
-                if (e.key === "Tab" && !e.shiftKey) {
-                  if (acceptSuffix()) {
+                if (e.key === "Tab") {
+                  if (matchingSuggestions.length > 0) {
                     e.preventDefault();
+                    setPickIndex((i) => (i + 1) % matchingSuggestions.length);
                   }
                 }
               }}
               spellCheck={false}
-              placeholder="Scrivi la richiesta o il prompt — Tab accetta, Shift+↑↓ o Shift+rotellina per ciclare i suggerimenti"
+              placeholder="Scrivi la richiesta o il prompt — Tab cicla i suggerimenti, Invio conferma, Maiusc+Invio a capo"
               className={`absolute inset-0 w-full h-full resize-none bg-transparent p-3 outline-none caret-primary placeholder:text-muted-foreground/60 selection:bg-primary/25 ${
                 showMirrorText ? "text-transparent" : "text-foreground"
               }`}
