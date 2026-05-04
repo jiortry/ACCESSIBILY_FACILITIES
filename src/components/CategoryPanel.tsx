@@ -46,7 +46,7 @@ export function CategoryPanel({ categories, filter, onInsert, onSpeak, onEdit, o
                 style={{ background: `hsl(var(${colorVar}))` }}
                 aria-hidden
               />
-              <h3 className="text-base uppercase tracking-wide" style={{ fontFamily: "'Press Start 2P', monospace", fontSize: "11px" }}>
+              <h3 className="text-sm font-semibold uppercase tracking-wide">
                 {cat.name}
               </h3>
               <span className="text-xs text-muted-foreground">({cat.items.length})</span>
