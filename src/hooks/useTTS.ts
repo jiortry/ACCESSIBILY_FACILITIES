@@ -1,86 +1,52 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
-
-const TTS_LANG = "it-IT";
-
-function haltAudio(audio: HTMLAudioElement | null) {
-  if (!audio) return;
-  audio.onended = null;
-  audio.onerror = null;
-  audio.pause();
-  audio.currentTime = 0;
-}
 
 export function useTTS() {
   const [speaking, setSpeaking] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const genRef = useRef(0);
+  const voiceRef = useRef<SpeechSynthesisVoice | null>(null);
 
   useEffect(() => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    const pick = () => {
+      const voices = window.speechSynthesis.getVoices();
+      voiceRef.current =
+        voices.find((v) => v.lang?.toLowerCase().startsWith("it")) ?? voices[0] ?? null;
+    };
+    pick();
+    window.speechSynthesis.onvoiceschanged = pick;
     return () => {
-      genRef.current += 1;
-      haltAudio(audioRef.current);
-      audioRef.current = null;
+      window.speechSynthesis.cancel();
     };
   }, []);
 
-  const stop = useCallback(() => {
-    genRef.current += 1;
-    haltAudio(audioRef.current);
-    audioRef.current = null;
-    setSpeaking(false);
-  }, []);
-
   const speak = useCallback((text: string) => {
-    const trimmed = text.trim();
-    if (!trimmed) return;
-
-    const puter = typeof window !== "undefined" ? window.puter : undefined;
-    if (!puter?.ai?.txt2speech) {
-      toast.error("Voce non disponibile: ricarica la pagina o controlla la connessione.");
-      return;
-    }
-
-    genRef.current += 1;
-    const myGen = genRef.current;
-    haltAudio(audioRef.current);
-    audioRef.current = null;
-    setSpeaking(true);
-
-    puter.ai
-      .txt2speech(trimmed, TTS_LANG)
-      .then((audio) => {
-        if (myGen !== genRef.current) return;
-        audioRef.current = audio;
-        audio.onended = () => {
-          if (audioRef.current === audio) audioRef.current = null;
-          setSpeaking(false);
-        };
-        audio.onerror = () => {
-          if (audioRef.current === audio) audioRef.current = null;
-          setSpeaking(false);
-          toast.error("Errore durante la riproduzione audio.");
-        };
-        void audio.play().catch(() => {
-          if (myGen !== genRef.current) return;
-          setSpeaking(false);
-          toast.error("Impossibile avviare la riproduzione.");
-        });
-      })
-      .catch(() => {
-        if (myGen !== genRef.current) return;
-        setSpeaking(false);
-        toast.error("Errore sintesi vocale. Riprova tra poco.");
-      });
+    if (!("speechSynthesis" in window) || !text.trim()) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    if (voiceRef.current) u.voice = voiceRef.current;
+    u.rate = 1;
+    u.onstart = () => setSpeaking(true);
+    u.onend = () => setSpeaking(false);
+    u.onerror = () => setSpeaking(false);
+    window.speechSynthesis.speak(u);
   }, []);
 
   const toggle = useCallback(
     (text: string) => {
-      if (speaking) stop();
-      else speak(text);
+      if (!("speechSynthesis" in window)) return;
+      if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+        setSpeaking(false);
+      } else {
+        speak(text);
+      }
     },
-    [speak, speaking, stop]
+    [speak]
   );
+
+  const stop = useCallback(() => {
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+    setSpeaking(false);
+  }, []);
 
   return { speak, toggle, stop, speaking };
 }
