@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { SEED_PHRASES, type PhraseCategory } from "@/data/phrases";
 
-const STORAGE_KEY = "prompter-mc:phrases-v1";
-const COUNTS_KEY = "prompter-mc:counts-v1";
+const STORAGE_KEY = "prompter-mc:phrases-v2";
+const COUNTS_KEY = "prompter-mc:counts-v2";
 
 type Counts = Record<string, number>; // key = `${cat}:::${value}`
 
