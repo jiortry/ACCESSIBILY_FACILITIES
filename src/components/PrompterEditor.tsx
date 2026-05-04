@@ -121,6 +121,8 @@ export const PrompterEditor = forwardRef<HTMLTextAreaElement, Props>(function Pr
   const [pickIndex, setPickIndex] = useState(0);
   const [menuPos, setMenuPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
   const suggestionItemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  /** Snapshot at contextmenu so actions still see the right range after focus/blur. */
+  const menuContextBoundsRef = useRef<{ start: number; end: number } | null>(null);
 
   const [editOpen, setEditOpen] = useState(false);
   const [editDraft, setEditDraft] = useState("");
@@ -255,6 +257,11 @@ export const PrompterEditor = forwardRef<HTMLTextAreaElement, Props>(function Pr
   const readContext = () => {
     const el = innerRef.current;
     if (!el) return { text: "", start: 0, end: 0 };
+    const snap = menuContextBoundsRef.current;
+    if (snap) {
+      const { start, end } = snap;
+      return { text: value.slice(start, end), start, end };
+    }
     const a = el.selectionStart ?? 0;
     const b = el.selectionEnd ?? 0;
     const { start, end } = getContextTextBounds(value, a, b);
@@ -344,7 +351,7 @@ export const PrompterEditor = forwardRef<HTMLTextAreaElement, Props>(function Pr
   const handleGoogle = () => {
     const { text } = readContext();
     if (!text.trim()) {
-      toast.message("Seleziona del testo");
+      toast.message("Posiziona il cursore su una parola o seleziona del testo");
       return;
     }
     const url = buildGoogleTranslateTtsUrl(text);
@@ -372,9 +379,26 @@ export const PrompterEditor = forwardRef<HTMLTextAreaElement, Props>(function Pr
 
   return (
     <>
-      <ContextMenu>
+      <ContextMenu
+        onOpenChange={(open) => {
+          if (!open) menuContextBoundsRef.current = null;
+        }}
+      >
         <ContextMenuTrigger asChild>
-          <div ref={wrapperRef} className={`relative h-full ${className ?? ""}`}>
+          <div
+            ref={wrapperRef}
+            className={`relative h-full ${className ?? ""}`}
+            onContextMenu={() => {
+              const ta = innerRef.current;
+              if (!ta) {
+                menuContextBoundsRef.current = null;
+                return;
+              }
+              const a = ta.selectionStart ?? 0;
+              const b = ta.selectionEnd ?? 0;
+              menuContextBoundsRef.current = getContextTextBounds(value, a, b);
+            }}
+          >
             {/* Invisible layer: same wrap/scroll as textarea to measure caret on-screen */}
             <div
               ref={measureLayerRef}
@@ -401,9 +425,6 @@ export const PrompterEditor = forwardRef<HTMLTextAreaElement, Props>(function Pr
                 }}
                 onWheel={(e) => e.stopPropagation()}
               >
-                <div className="sticky top-0 z-[1] px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/90 border-b border-border/30 bg-background/90 backdrop-blur-sm">
-                  Tab cicla · Invio conferma · Maiusc+Invio = a capo
-                </div>
                 <div className="py-1">
                   {matchingSuggestions.map((phrase, i) => {
                     const rest = phrase.slice(token.length);
@@ -479,7 +500,7 @@ export const PrompterEditor = forwardRef<HTMLTextAreaElement, Props>(function Pr
                 }
               }}
               spellCheck={false}
-              placeholder="Scrivi la richiesta o il prompt — Tab cicla i suggerimenti, Invio conferma, Maiusc+Invio a capo"
+              placeholder=""
               className={`absolute inset-0 w-full h-full resize-none bg-transparent p-3 outline-none caret-primary placeholder:text-muted-foreground/60 selection:bg-primary/25 ${
                 showMirrorText ? "text-transparent" : "text-foreground"
               }`}

@@ -172,9 +172,6 @@ const Index = () => {
             onSpeak={speak}
             onEditPhrase={editItem}
           />
-          <div className="absolute bottom-1 right-2 text-xs text-muted-foreground/70 pointer-events-none select-none">
-            Tab cicla · Invio conferma · Maiusc+Invio a capo
-          </div>
         </div>
 
         <div className="mc-block rounded-none border-x-0 border-b-0 flex flex-col min-h-0">
