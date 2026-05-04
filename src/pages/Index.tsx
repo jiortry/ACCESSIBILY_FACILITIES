@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from "react";
-import { Copy, Volume2, RotateCcw, Quote, Trash2 } from "lucide-react";
+import { Copy, Volume2, RotateCcw, Sparkles, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { PrompterEditor } from "@/components/PrompterEditor";
@@ -8,7 +8,16 @@ import { AddPhraseDialog } from "@/components/AddPhraseDialog";
 import { usePhrases } from "@/hooks/usePhrases";
 import { useTTS } from "@/hooks/useTTS";
 
-const WRAP_PREFIX = "> ";
+const IMPROVE_PROMPT_INTRO =
+  "Sei un assistente per prompt tecnici. Migliora e rendi completo, chiaro e strutturato il testo seguente, in contesto di server Minecraft (Plugin, Bukkit, Paper, Spigot, Fabric, mod, performante, equilibrato, sicurezza, permessi, economia, PvE/PvP). Non inventare fatti: se mancano dettagli, elenchi domande. Mantieni l'intento e il piano dell'utente. L'utente chiede:\n\n";
+
+function escapeForQuotedPrompt(body: string): string {
+  return body.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+function buildImprovePrompt(userText: string): string {
+  return IMPROVE_PROMPT_INTRO + `"${escapeForQuotedPrompt(userText)}"`;
+}
 
 const Index = () => {
   const { categories, allItems, incrementUse, addItem, editItem, deleteItem, resetToSeed } = usePhrases();
@@ -16,8 +25,8 @@ const Index = () => {
 
   const [text, setText] = useState("");
   const [filter, setFilter] = useState("");
-  const [wrapped, setWrapped] = useState(false);
-  const wrapBackup = useRef<string>("");
+  const [improveMode, setImproveMode] = useState(false);
+  const improveBackup = useRef<string>("");
   const editorRef = useRef<HTMLTextAreaElement | null>(null);
 
   const insertAtCursor = useCallback(
@@ -53,20 +62,14 @@ const Index = () => {
     }
   };
 
-  const toggleWrap = () => {
-    if (!wrapped) {
-      wrapBackup.current = text;
-      const wrappedText =
-        WRAP_PREFIX +
-        text
-          .split("\n")
-          .map((l) => `> ${l}`)
-          .join("\n");
-      setText(wrappedText);
-      setWrapped(true);
+  const toggleImprove = () => {
+    if (!improveMode) {
+      improveBackup.current = text;
+      setText(buildImprovePrompt(text));
+      setImproveMode(true);
     } else {
-      setText(wrapBackup.current);
-      setWrapped(false);
+      setText(improveBackup.current);
+      setImproveMode(false);
     }
   };
 
@@ -91,11 +94,15 @@ const Index = () => {
           <Copy className="h-4 w-4" /> Copia
         </button>
         <button
-          className={`mc-btn ${wrapped ? "mc-btn-accent" : ""}`}
-          onClick={toggleWrap}
-          title="Quota il testo (involucro)"
+          className={`mc-btn ${improveMode ? "mc-btn-accent" : ""}`}
+          onClick={toggleImprove}
+          title={
+            improveMode
+              ? "Ripristina solo il testo che avevi scritto"
+              : "Avvolgi il testo nel prompt “Migliora” per un LLM"
+          }
         >
-          <Quote className="h-4 w-4" /> {wrapped ? "Annulla quote" : "Quote"}
+          <Sparkles className="h-4 w-4" /> {improveMode ? "Annulla migliora" : "Migliora"}
         </button>
         <button
           className="mc-btn"

@@ -126,7 +126,7 @@ export const PrompterEditor = forwardRef<HTMLTextAreaElement, Props>(function Pr
           }
         }}
         spellCheck={false}
-        placeholder="Scrivi qui... (Tab per accettare il suggerimento)"
+        placeholder="Scrivi la richiesta o il prompt (Plugin, Paper, config...) — Tab accetta il suggerimento"
         className="absolute inset-0 w-full h-full resize-none bg-transparent p-3 outline-none caret-primary text-foreground placeholder:text-muted-foreground/60"
         style={{
           fontSize: "15px",

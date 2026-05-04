@@ -5,6 +5,30 @@ export type PhraseCategory = {
 
 export const SEED_PHRASES: PhraseCategory[] = [
   {
+    name: "Prompt / Plugin & stack",
+    items: [
+      "Plugin",
+      "plugin",
+      "plugins",
+      "Bukkit",
+      "Paper",
+      "Spigot",
+      "Fabric",
+      "mod",
+      "mods",
+      "performante",
+      "equilibrato",
+      "sicurezza",
+      "permessi",
+      "economia server",
+      "PvE",
+      "PvP",
+      "API",
+      "NBT",
+      "YAML",
+    ],
+  },
+  {
     name: "Server / Hosting",
     items: [
       "server minecraft",
