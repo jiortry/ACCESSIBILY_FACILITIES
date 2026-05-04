@@ -103,8 +103,7 @@ export const PrompterEditor = forwardRef<HTMLTextAreaElement, Props>(function Pr
         style={{
           font: "inherit",
           lineHeight: "1.5",
-          fontFamily: "'VT323', monospace",
-          fontSize: "20px",
+          fontSize: "15px",
         }}
       >
         <span>{before}</span>
@@ -130,8 +129,7 @@ export const PrompterEditor = forwardRef<HTMLTextAreaElement, Props>(function Pr
         placeholder="Scrivi qui... (Tab per accettare il suggerimento)"
         className="absolute inset-0 w-full h-full resize-none bg-transparent p-3 outline-none caret-primary text-foreground placeholder:text-muted-foreground/60"
         style={{
-          fontFamily: "'VT323', monospace",
-          fontSize: "20px",
+          fontSize: "15px",
           lineHeight: "1.5",
         }}
       />

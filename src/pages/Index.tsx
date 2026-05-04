@@ -76,10 +76,7 @@ const Index = () => {
     <main className="h-screen w-screen flex flex-col">
       {/* Toolbar */}
       <header className="mc-block rounded-none border-x-0 border-t-0 px-3 py-2 flex flex-wrap gap-2 items-center">
-        <h1
-          className="mr-2 text-primary"
-          style={{ fontFamily: "'Press Start 2P', monospace", fontSize: "12px" }}
-        >
+        <h1 className="mr-2 text-primary font-semibold text-lg">
           PrompterMinecraft
         </h1>
         <button
