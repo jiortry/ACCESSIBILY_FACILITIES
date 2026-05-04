@@ -1,8 +1,7 @@
 import { useMemo } from "react";
 import { PhraseChip } from "./PhraseChip";
 import type { PhraseCategory } from "@/data/phrases";
-
-const COLOR_VARS = ["--cat-1", "--cat-2", "--cat-3", "--cat-4", "--cat-5", "--cat-6", "--cat-7", "--cat-8"];
+import { CATEGORY_COLOR_VARS } from "@/lib/categoryColors";
 
 type Props = {
   categories: PhraseCategory[];
@@ -33,7 +32,7 @@ export function CategoryPanel({ categories, filter, onInsert, onSpeak, onEdit, o
   return (
     <div className="space-y-3 p-3">
       {filtered.map((cat, idx) => {
-        const colorVar = COLOR_VARS[idx % COLOR_VARS.length];
+        const colorVar = CATEGORY_COLOR_VARS[idx % CATEGORY_COLOR_VARS.length]!;
         return (
           <section
             key={cat.name}

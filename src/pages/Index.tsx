@@ -1,6 +1,8 @@
-import { useCallback, useRef, useState } from "react";
-import { Copy, Github, Volume2, RotateCcw, Sparkles, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Copy, Volume2, RotateCcw, Sparkles, Trash2, Highlighter } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { PrompterEditor } from "@/components/PrompterEditor";
 import { CategoryPanel } from "@/components/CategoryPanel";
@@ -15,18 +17,31 @@ function escapeForQuotedPrompt(body: string): string {
   return body.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
+const HIGHLIGHT_PHRASES_KEY = "prompter-mc:highlight-phrases";
+
+function loadBool(key: string, fallback: boolean): boolean {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw == null) return fallback;
+    return JSON.parse(raw) as boolean;
+  } catch {
+    return fallback;
+  }
+}
+
 function buildImprovePrompt(userText: string): string {
   return IMPROVE_PROMPT_INTRO + `"${escapeForQuotedPrompt(userText)}"`;
 }
 
-const GITHUB_REPO_URL = "https://github.com/jiortry/ACCESSIBILY_FACILITIES";
-
 const Index = () => {
-  const { categories, allItems, incrementUse, addItem, editItem, deleteItem, resetToSeed } = usePhrases();
+  const { categories, allItems, addItem, editItem, deleteItem, resetToSeed } = usePhrases();
   const { speak, toggle, speaking } = useTTS();
 
   const [text, setText] = useState("");
   const [filter, setFilter] = useState("");
+  const [highlightPhrases, setHighlightPhrases] = useState(() =>
+    loadBool(HIGHLIGHT_PHRASES_KEY, true)
+  );
   const [improveMode, setImproveMode] = useState(false);
   const improveBackup = useRef<string>("");
   const editorRef = useRef<HTMLTextAreaElement | null>(null);
@@ -42,7 +57,6 @@ const Index = () => {
       const insertion = (needsSpace ? " " : "") + value + " ";
       const next = before + insertion + after;
       setText(next);
-      incrementUse(cat, raw);
       requestAnimationFrame(() => {
         const e = editorRef.current;
         if (e) {
@@ -52,7 +66,7 @@ const Index = () => {
         }
       });
     },
-    [text, incrementUse]
+    [text]
   );
 
   const copyAll = async () => {
@@ -75,22 +89,15 @@ const Index = () => {
     }
   };
 
+  useEffect(() => {
+    localStorage.setItem(HIGHLIGHT_PHRASES_KEY, JSON.stringify(highlightPhrases));
+  }, [highlightPhrases]);
+
   const knownCategories = categories.map((c) => c.name);
 
   return (
     <main className="h-screen w-screen flex flex-col">
       <header className="mc-block rounded-none border-x-0 border-t-0 px-3 py-2 flex flex-wrap gap-2 items-center">
-        <a
-          href={GITHUB_REPO_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mc-btn py-1.5 px-2.5 text-sm font-medium gap-1.5 min-h-0 shrink-0"
-          aria-label="Apri la repository su GitHub"
-          title="Repository su GitHub"
-        >
-          <Github className="h-4 w-4 shrink-0" strokeWidth={2.25} aria-hidden />
-          <span>GitHub</span>
-        </a>
         <h1 className="mr-2 text-primary font-semibold text-lg">
           PrompterMinecraft
         </h1>
@@ -105,6 +112,18 @@ const Index = () => {
         <button className="mc-btn" onClick={copyAll} title="Copia tutto">
           <Copy className="h-4 w-4" /> Copia
         </button>
+        <div className="flex items-center gap-2 border-l-2 border-foreground/15 pl-3 ml-1">
+          <Highlighter className="h-4 w-4 text-muted-foreground shrink-0" aria-hidden />
+          <Label htmlFor="highlight-phrases" className="text-sm cursor-pointer whitespace-nowrap">
+            Evidenzia frasi
+          </Label>
+          <Switch
+            id="highlight-phrases"
+            checked={highlightPhrases}
+            onCheckedChange={setHighlightPhrases}
+            title="Colora nel testo le voci riconosciute dal dizionario"
+          />
+        </div>
         <button
           className={`mc-btn ${improveMode ? "mc-btn-accent" : ""}`}
           onClick={toggleImprove}
@@ -143,9 +162,18 @@ const Index = () => {
       {/* Editor area */}
       <section className="flex-1 min-h-0 grid grid-rows-[minmax(120px,40%)_1fr] gap-0">
         <div className="mc-block rounded-none border-x-0 m-0 relative">
-          <PrompterEditor ref={editorRef} value={text} onChange={setText} suggestions={allItems} />
+          <PrompterEditor
+            ref={editorRef}
+            value={text}
+            onChange={setText}
+            suggestions={allItems}
+            phraseCategories={categories}
+            highlightPhrases={highlightPhrases}
+            onSpeak={speak}
+            onEditPhrase={editItem}
+          />
           <div className="absolute bottom-1 right-2 text-xs text-muted-foreground/70 pointer-events-none select-none">
-            Tab = accetta suggerimento
+            Shift+↓ ↑ cicla · Tab accetta
           </div>
         </div>
 
