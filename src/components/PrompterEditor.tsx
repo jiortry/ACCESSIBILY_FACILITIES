@@ -1,5 +1,6 @@
 import {
   forwardRef,
+  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -237,22 +238,32 @@ export const PrompterEditor = forwardRef<HTMLTextAreaElement, Props>(function Pr
     };
   }, []);
 
-  const acceptSuffix = () => {
-    if (!suffix) return false;
-    const insertion = suffix + " ";
-    const next = value.slice(0, caret) + insertion + value.slice(caret);
-    onChange(next);
-    requestAnimationFrame(() => {
-      const el = innerRef.current;
-      if (el) {
-        const pos = caret + insertion.length;
-        el.focus();
-        el.setSelectionRange(pos, pos);
-        setCaret(pos);
-      }
-    });
-    return true;
-  };
+  const acceptSuggestion = useCallback(
+    (phrase: string) => {
+      if (!token) return false;
+      const suf = applyCasing(token, phrase.slice(token.length));
+      if (!suf) return false;
+      const insertion = suf + " ";
+      const next = value.slice(0, caret) + insertion + value.slice(caret);
+      onChange(next);
+      requestAnimationFrame(() => {
+        const el = innerRef.current;
+        if (el) {
+          const pos = caret + insertion.length;
+          el.focus();
+          el.setSelectionRange(pos, pos);
+          setCaret(pos);
+        }
+      });
+      return true;
+    },
+    [token, value, caret, onChange]
+  );
+
+  const acceptSuffix = useCallback(() => {
+    if (!pickedPhrase) return false;
+    return acceptSuggestion(pickedPhrase);
+  }, [pickedPhrase, acceptSuggestion]);
 
   const readContext = () => {
     const el = innerRef.current;
@@ -437,12 +448,15 @@ export const PrompterEditor = forwardRef<HTMLTextAreaElement, Props>(function Pr
                         }}
                         role="option"
                         aria-selected={active}
+                        tabIndex={-1}
                         className={cn(
-                          "mx-1 flex min-h-[1.6rem] items-center rounded px-2 py-0.5 text-[13px] leading-snug transition-colors",
+                          "mx-1 flex min-h-[1.6rem] cursor-pointer items-center rounded px-2 py-0.5 text-[13px] leading-snug transition-colors select-none",
                           active
                             ? "bg-primary/22 text-foreground ring-1 ring-primary/35"
                             : "text-foreground/85 hover:bg-muted/50"
                         )}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => acceptSuggestion(phrase)}
                       >
                         <span className="text-muted-foreground/90">{token}</span>
                         <span className={cn("font-medium", active ? "text-primary" : "text-foreground/90")}>
