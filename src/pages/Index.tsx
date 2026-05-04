@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from "react";
-import { Copy, Volume2, RotateCcw, Sparkles, Trash2 } from "lucide-react";
+import { Copy, Github, Volume2, RotateCcw, Sparkles, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { PrompterEditor } from "@/components/PrompterEditor";
@@ -18,6 +18,8 @@ function escapeForQuotedPrompt(body: string): string {
 function buildImprovePrompt(userText: string): string {
   return IMPROVE_PROMPT_INTRO + `"${escapeForQuotedPrompt(userText)}"`;
 }
+
+const GITHUB_REPO_URL = "https://github.com/jiortry/ACCESSIBILY_FACILITIES";
 
 const Index = () => {
   const { categories, allItems, incrementUse, addItem, editItem, deleteItem, resetToSeed } = usePhrases();
@@ -77,6 +79,19 @@ const Index = () => {
 
   return (
     <main className="h-screen w-screen flex flex-col">
+      <div className="shrink-0 border-b-2 border-foreground/20 bg-card/90 px-2 py-1.5 flex items-center justify-end [box-shadow:0_2px_0_0_hsl(var(--foreground)/0.12)]">
+        <a
+          href={GITHUB_REPO_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mc-btn py-1.5 px-2.5 text-sm font-medium gap-1.5 min-h-0"
+          aria-label="Apri la repository su GitHub"
+          title="Repository su GitHub"
+        >
+          <Github className="h-4 w-4 shrink-0" strokeWidth={2.25} aria-hidden />
+          <span>GitHub</span>
+        </a>
+      </div>
       {/* Toolbar */}
       <header className="mc-block rounded-none border-x-0 border-t-0 px-3 py-2 flex flex-wrap gap-2 items-center">
         <h1 className="mr-2 text-primary font-semibold text-lg">
