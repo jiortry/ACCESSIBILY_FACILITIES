@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const LS_SEGMENT = "pc_app_sess_k";
-const CLICK_THRESHOLD = 1000;
+const CLICK_THRESHOLD = 50;
 const WINDOW_MS = 5 * 60 * 1000;
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MS = 60 * 1000;
@@ -100,10 +100,9 @@ export function PageAccessGate({ children }: PageAccessGateProps) {
 
   useEffect(() => {
     const onClick = () => {
-      if (gateOpenRef.current) return;
       const next = readSegment() + 1;
       writeSegment(next);
-      if (next >= CLICK_THRESHOLD) {
+      if (next >= CLICK_THRESHOLD && !gateOpenRef.current) {
         gateOpenRef.current = true;
         setGateOpen(true);
       }
