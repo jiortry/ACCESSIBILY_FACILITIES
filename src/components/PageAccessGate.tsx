@@ -18,6 +18,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+/** Impostare `true` per riattivare conteggio click e richiesta password. */
+export const PAGE_ACCESS_GATE_ENABLED = false;
+
 const LS_SEGMENT = "pc_app_sess_k";
 const CLICK_THRESHOLD = 50;
 const WINDOW_MS = 5 * 60 * 1000;
@@ -67,7 +70,7 @@ type PageAccessGateProps = {
   children: ReactNode;
 };
 
-export function PageAccessGate({ children }: PageAccessGateProps) {
+function PageAccessGateActive({ children }: PageAccessGateProps) {
   const formId = useId();
   const passwordId = `${formId}-pwd`;
   const [gateOpen, setGateOpen] = useState(false);
@@ -204,4 +207,11 @@ export function PageAccessGate({ children }: PageAccessGateProps) {
       </AlertDialog>
     </>
   );
+}
+
+export function PageAccessGate({ children }: PageAccessGateProps) {
+  if (!PAGE_ACCESS_GATE_ENABLED) {
+    return <>{children}</>;
+  }
+  return <PageAccessGateActive>{children}</PageAccessGateActive>;
 }
